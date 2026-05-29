@@ -59,4 +59,6 @@ document
     };
 
     ref.push(studentApplication);
+
+    window.location.href = "/form/submitted.html";
   });

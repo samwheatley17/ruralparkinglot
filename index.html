@@ -54,14 +54,33 @@
         background-color: #3a3a44; /* Fallback background for the road/lot surface */
         border-radius: 6px;
         cursor: pointer;
+        touch-action: none;
+      }
+
+      button {
+        background-color: #212529; /* Dark charcoal */
+        color: #ffffff;
+        padding: 10px 20px;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        transition: background-color 0.3s ease;
+        margin-bottom: 12px;
+        border: #f5f5f7 2px solid;
+      }
+
+      a {
+        font-weight: bold;
+        color: #ffffff;
+        text-decoration: none;
       }
     </style>
   </head>
   <body>
     <h1>Parking Lot Overview</h1>
-    <div class="controls" id="status-display">
-      Click a spot to view availability
-    </div>
+    <div class="controls" id="status-display">Drag and scroll to view.</div>
+
+    <button><a href="form/index.html">Apply For a Spot</a></button>
 
     <div class="canvas-container">
       <canvas id="parkingCanvas" width="800" height="500"></canvas>

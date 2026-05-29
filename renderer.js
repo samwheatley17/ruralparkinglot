@@ -239,3 +239,98 @@ db.ref("students").on("value", (snap) => {
   });
   drawMap();
 });
+
+// ---- Touch state ----
+let lastTouchDist = null; // distance between two fingers for pinch
+let lastTouchMid = null; // midpoint between two fingers
+
+function getTouchDist(t1, t2) {
+  const dx = t2.clientX - t1.clientX;
+  const dy = t2.clientY - t1.clientY;
+  return Math.hypot(dx, dy);
+}
+
+function getTouchMid(t1, t2, rect) {
+  return {
+    x: (t1.clientX + t2.clientX) / 2 - rect.left,
+    y: (t1.clientY + t2.clientY) / 2 - rect.top,
+  };
+}
+
+// ---- Touch start ----
+canvas.addEventListener(
+  "touchstart",
+  (e) => {
+    e.preventDefault();
+    const rect = canvas.getBoundingClientRect();
+
+    if (e.touches.length === 1) {
+      // Single finger → pan
+      isDragging = true;
+      startX = e.touches[0].clientX - scrollX;
+      startY = e.touches[0].clientY - scrollY;
+    } else if (e.touches.length === 2) {
+      // Two fingers → pinch zoom
+      isDragging = false;
+      lastTouchDist = getTouchDist(e.touches[0], e.touches[1]);
+      lastTouchMid = getTouchMid(e.touches[0], e.touches[1], rect);
+    }
+  },
+  { passive: false }
+);
+
+// ---- Touch move ----
+canvas.addEventListener(
+  "touchmove",
+  (e) => {
+    e.preventDefault();
+    const rect = canvas.getBoundingClientRect();
+
+    if (e.touches.length === 1 && isDragging) {
+      // Pan
+      scrollX = e.touches[0].clientX - startX;
+      scrollY = e.touches[0].clientY - startY;
+      drawMap();
+    } else if (e.touches.length === 2 && lastTouchDist !== null) {
+      // Pinch zoom — anchor zoom to midpoint between fingers
+      const newDist = getTouchDist(e.touches[0], e.touches[1]);
+      const newMid = getTouchMid(e.touches[0], e.touches[1], rect);
+
+      const worldX = (newMid.x - scrollX) / scale;
+      const worldY = (newMid.y - scrollY) / scale;
+
+      const zoomFactor = newDist / lastTouchDist;
+      scale = Math.min(Math.max(scale * zoomFactor, MIN_SCALE), MAX_SCALE);
+
+      // Re-anchor so the midpoint stays under the fingers
+      scrollX = newMid.x - worldX * scale;
+      scrollY = newMid.y - worldY * scale;
+
+      lastTouchDist = newDist;
+      lastTouchMid = newMid;
+      drawMap();
+    }
+  },
+  { passive: false }
+);
+
+// ---- Touch end ----
+canvas.addEventListener("touchend", (e) => {
+  if (e.touches.length === 0) {
+    isDragging = false;
+    lastTouchDist = null;
+    lastTouchMid = null;
+  } else if (e.touches.length === 1) {
+    // Went from 2 fingers → 1 finger: reset pan anchor so it doesn't jump
+    isDragging = true;
+    startX = e.touches[0].clientX - scrollX;
+    startY = e.touches[0].clientY - scrollY;
+    lastTouchDist = null;
+  }
+});
+
+canvas.addEventListener("touchcancel", () => {
+  isDragging = false;
+  lastTouchDist = null;
+  lastTouchMid = null;
+});
