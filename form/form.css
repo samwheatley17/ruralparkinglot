@@ -1,0 +1,169 @@
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+body {
+    background-color: #F9F9F9; /* Soft off-white to reduce eye strain */
+    color: #1A1A1A; /* Sharp black for readable text */
+    display: flex;
+    justify-content: center;
+    min-height: 150vh;
+    padding: 20px;
+    margin: 40px
+}
+
+/* Container */
+.form-container {
+    background-color: #FFFFFF; /* Pure white container */
+    border: 2px solid #1A1A1A; /* Solid black border */
+    width: 100%;
+    max-width: 600px;
+    height: max-content;
+    padding: 40px;
+    box-shadow: 6px 6px 0px #1A1A1A; /* Retro high-contrast black shadow */
+}
+
+/* Header with Red Accent Bar */
+.form-header {
+    border-left: 5px solid #D32F2F; /* Accent red bar */
+    padding-left: 15px;
+    margin-bottom: 30px;
+}
+
+.form-header h1 {
+    font-size: 24px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 5px;
+}
+
+.form-header p {
+    color: #666666;
+    font-size: 14px;
+}
+
+/* Form Layout */
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-row {
+    display: flex;
+    gap: 20px;
+}
+
+.form-row .form-group {
+    flex: 1;
+}
+
+/* Labels and Inputs */
+label {
+    display: block;
+    font-weight: 700;
+    font-size: 14px;
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.required {
+    color: #D32F2F; /* Red asterisk */
+}
+
+input[type="text"],
+input[type="tel"],
+input[type="email"],
+select {
+    width: 100%;
+    padding: 12px 16px;
+    border: 1.5px solid #1A1A1A; /* Black border */
+    background-color: #FFFFFF;
+    color: #1A1A1A;
+    font-size: 15px;
+    border-radius: 0px; /* Sharp corners for an aggressive, clean look */
+    transition: all 0.2s ease;
+}
+
+/* Focus / Active States */
+input:focus,
+select:focus {
+    outline: none;
+    border-color: #D32F2F; /* Border turns red on focus */
+    box-shadow: 0 0 0 3px rgba(211, 47, 47, 0.15); /* Soft red glow */
+}
+
+/* Error State Styles */
+.form-group.error input {
+    border-color: #D32F2F; /* Red border for errors */
+    background-color: #FFF8F8; /* Subtle red tint */
+}
+
+.error-text {
+    display: block;
+    color: #D32F2F; /* Red text */
+    font-size: 12px;
+    font-weight: 600;
+    margin-top: 6px;
+}
+
+/* Buttons */
+.form-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 15px;
+    margin-top: 30px;
+}
+
+.btn {
+    padding: 14px 24px;
+    font-size: 14px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    cursor: pointer;
+    border-radius: 0px;
+    transition: all 0.2s ease;
+}
+
+.btn-primary {
+    background-color: #D32F2F; /* Solid Red */
+    color: #FFFFFF;
+    border: 2px solid #D32F2F;
+}
+
+.btn-primary:hover {
+    background-color: #1A1A1A; /* Turns black on hover */
+    border-color: #1A1A1A;
+}
+
+.btn-secondary {
+    background-color: #FFFFFF;
+    color: #1A1A1A;
+    border: 2px solid #1A1A1A;
+}
+
+.btn-secondary:hover {
+    background-color: #1A1A1A;
+    color: #FFFFFF;
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 480px) {
+    .form-row {
+        flex-direction: column;
+        gap: 0;
+    }
+    .form-container {
+        padding: 20px;
+    }
+    .form-actions {
+        flex-direction: column-reverse;
+    }
+    .btn {
+        width: 100%;
+    }
+}

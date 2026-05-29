@@ -1,14 +1,5 @@
-// Import the functions you need from the SDKs you need
-import {
-  initializeApp,
-  getDatabase,
-} from "https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js";
-import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-analytics.js";
-// TODO: Add SDKs for Firebase products that you want to use
-// https://firebase.google.com/docs/web/setup#available-libraries
-
-// Your web app's Firebase configuration
-// For Firebase JS SDK v7.20.0 and later, measurementId is optional
+// // Your web app's Firebase configuration
+// // For Firebase JS SDK v7.20.0 and later, measurementId is optional
 const firebaseConfig = {
   apiKey: "AIzaSyC1iRMXc369MCEaE7bAvWmamVCSX0_bLU8",
   authDomain: "ruralparkinglot.firebaseapp.com",
@@ -20,32 +11,52 @@ const firebaseConfig = {
   measurementId: "G-ETF938ED3L",
 };
 
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
-const analytics = getAnalytics(app);
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+const ref = db.ref("students"); // data lives at /students in your DB
 
-// 4. Initialize Realtime Database and get a reference to the service
-const database = getDatabase(app);
+// 3. Write — push() auto-generates a unique key
 
-// 5. Function to push data
-async function saveData() {
-  // Define the path where you want to store data (e.g., "parking_logs")
-  const dbRef = ref(database, "parking_logs");
+// 4. Read (real-time listener — updates instantly for everyone)
+ref.on("value", (snapshot) => {
+  const list = document.getElementById("nameList");
+  list.innerHTML = "";
+  snapshot.forEach((child) => {
+    const li = document.createElement("li");
+    li.textContent = child.val().name;
+    list.appendChild(li);
+  });
+});
 
-  const newData = {
-    spotNumber: 42,
-    isOccupied: true,
-    timestamp: Date.now(),
-  };
+document
+  .getElementById("parkingForm")
+  .addEventListener("submit", function (event) {
+    event.preventDefault();
+    const fullName = document.getElementById("fullname").value;
+    const grade = document.getElementById("grade").value;
+    const email = document.getElementById("email").value;
+    const phone = document.getElementById("phone").value;
+    const average = document.getElementById("average").value;
+    const plate = document.getElementById("plate").value;
+    const make = document.getElementById("make").value;
+    const time = document.getElementById("time").value;
+    const attendance = document.getElementById("attendance").value;
 
-  try {
-    // push() automatically generates a unique ID (like -Njkx... )
-    const res = await push(dbRef, newData);
-    console.log("Data pushed successfully! Document ID:", res.key);
-    alert("Data saved with ID: " + res.key);
-  } catch (error) {
-    console.error("Error pushing data:", error);
-  }
-}
+    const studentApplication = {
+      studentName: fullName,
+      grade: grade,
+      email: email,
+      phone: phone,
+      average: average,
+      attendance: attendance,
 
-saveData();
+      vehicle: {
+        plate: plate.toUpperCase(),
+        makeModel: make,
+      },
+      time: time,
+      submittedAt: new Date().toISOString(),
+    };
+
+    ref.push(studentApplication);
+  });

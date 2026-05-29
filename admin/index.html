@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Parking Admin</title>
+    <script
+      defer
+      src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"
+    ></script>
+    <script
+      defer
+      src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"
+    ></script>
+    <script defer src="adminHandler.js"></script>
+    <link rel="stylesheet" href="admin.css" />
+  </head>
+  <body>
+    <div class="admin-container">
+      <header class="admin-header">
+        <h1>Parking Admin Dashboard</h1>
+        <p>Review applicants and assign parking spots by priority.</p>
+      </header>
+
+      <!-- Stats -->
+      <div class="stats-row">
+        <div class="stat-card">
+          <span class="stat-label">Applicants</span>
+          <span class="stat-value" id="statApplicants">0</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-label">Total Spots</span>
+          <span class="stat-value">123</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-label">Assigned</span>
+          <span class="stat-value" id="statAssigned">0</span>
+        </div>
+        <div class="stat-card stat-card-warn">
+          <span class="stat-label">Waitlisted</span>
+          <span class="stat-value" id="statWaitlisted">0</span>
+        </div>
+      </div>
+
+      <!-- Action Bar -->
+      <div class="action-bar">
+        <h2>Applicants (sorted by priority)</h2>
+        <button id="processBtn" class="btn btn-primary">
+          Process &amp; Assign
+        </button>
+      </div>
+
+      <!-- Student Table -->
+      <div class="table-wrapper">
+        <table class="student-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Name</th>
+              <th>Grade</th>
+              <th>Avg</th>
+              <th>Absences</th>
+              <th>Time</th>
+              <th>Plate</th>
+              <th>Spot</th>
+            </tr>
+          </thead>
+          <tbody id="studentTableBody">
+            <tr>
+              <td colspan="8" class="empty-row">Loading applicants...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Status message -->
+      <div id="statusMsg" class="status-msg"></div>
+    </div>
+  </body>
+</html>

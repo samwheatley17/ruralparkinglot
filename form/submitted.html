@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Application Submitted — Student Parking Permit</title>
+    <link rel="stylesheet" href="form.css" />
+    <style>
+      .success-banner {
+        background-color: #F0FAF4;
+        border: 1.5px solid #1A1A1A;
+        border-left: 5px solid #2E7D32;
+        padding: 18px 20px;
+        margin-bottom: 28px;
+        display: flex;
+        align-items: center;
+        gap: 14px;
+      }
+
+      .success-icon {
+        font-size: 32px;
+        color: #2E7D32;
+        font-weight: 800;
+        flex-shrink: 0;
+        line-height: 1;
+      }
+
+      .success-text h2 {
+        font-size: 16px;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: #1A1A1A;
+        margin-bottom: 4px;
+      }
+
+      .success-text p {
+        font-size: 13px;
+        color: #444;
+      }
+
+      .ref-box {
+        background-color: #F9F9F9;
+        border: 1.5px solid #1A1A1A;
+        padding: 14px 20px;
+        margin-bottom: 28px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 10px;
+      }
+
+      .ref-label {
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: #666;
+        margin-bottom: 4px;
+      }
+
+      .ref-number {
+        font-size: 22px;
+        font-weight: 800;
+        color: #D32F2F;
+        letter-spacing: 1px;
+      }
+
+      .status-badge {
+        display: inline-block;
+        background-color: #FFF3E0;
+        border: 1.5px solid #E65100;
+        color: #E65100;
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        padding: 4px 12px;
+      }
+
+      .section-label {
+        font-size: 12px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: #1A1A1A;
+        margin-bottom: 14px;
+        padding-bottom: 8px;
+        border-bottom: 1.5px solid #1A1A1A;
+      }
+
+      .detail-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        border: 1.5px solid #1A1A1A;
+        margin-bottom: 28px;
+      }
+
+      .detail-item {
+        padding: 14px 16px;
+        border-bottom: 1px solid #E0E0E0;
+        border-right: 1px solid #E0E0E0;
+      }
+
+      .detail-item:nth-child(even) {
+        border-right: none;
+      }
+
+      .detail-item.full {
+        grid-column: 1 / -1;
+        border-right: none;
+        border-bottom: none;
+      }
+
+      .detail-item:nth-last-child(2):not(.full),
+      .detail-item:nth-last-child(1):not(.full) {
+        border-bottom: none;
+      }
+
+      .detail-key {
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: #888;
+        margin-bottom: 4px;
+      }
+
+      .detail-val {
+        font-size: 14px;
+        font-weight: 600;
+        color: #1A1A1A;
+      }
+
+      .next-steps-box {
+        border: 1.5px solid #1A1A1A;
+        padding: 20px;
+        margin-bottom: 28px;
+      }
+
+      .next-steps-box ul {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+      }
+
+      .next-steps-box ul li {
+        font-size: 14px;
+        color: #333;
+        padding: 8px 0 8px 22px;
+        position: relative;
+        border-bottom: 1px dashed #E0E0E0;
+      }
+
+      .next-steps-box ul li:last-child {
+        border-bottom: none;
+        padding-bottom: 0;
+      }
+
+      .next-steps-box ul li:first-child {
+        padding-top: 0;
+      }
+
+      .next-steps-box ul li::before {
+        content: '—';
+        position: absolute;
+        left: 0;
+        color: #D32F2F;
+        font-weight: 800;
+      }
+
+      @media (max-width: 480px) {
+        .detail-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .detail-item {
+          border-right: none;
+          border-bottom: 1px solid #E0E0E0;
+        }
+
+        .detail-item:last-child {
+          border-bottom: none;
+        }
+
+        .detail-item.full {
+          border-bottom: none;
+        }
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="form-container">
+      <header class="form-header">
+        <img src="rural.png" />
+        <h1>Student Parking Permit Application</h1>
+        <p>Application submitted successfully.</p>
+      </header>
+
+      <!-- Success Banner -->
+      <div class="success-banner">
+        <div class="success-icon">✓</div>
+        <div class="success-text">
+          <h2>Application Received</h2>
+          <p>Your parking permit request has been submitted and is currently under review. You will be contacted at your school email address.</p>
+        </div>
+      </div>
+
+      <!-- Reference & Status -->
+      
+
+      <button type="button" class="btn btn-primary" onclick="window.location.href='../index.html'">Back to Home</button>
+
+  </body>
+</html>
+      

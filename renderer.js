@@ -1,3 +1,17 @@
+const firebaseConfig = {
+  apiKey: "AIzaSyC1iRMXc369MCEaE7bAvWmamVCSX0_bLU8",
+  authDomain: "ruralparkinglot.firebaseapp.com",
+  databaseURL: "https://ruralparkinglot-default-rtdb.firebaseio.com",
+  projectId: "ruralparkinglot",
+  storageBucket: "ruralparkinglot.firebasestorage.app",
+  messagingSenderId: "585974079211",
+  appId: "1:585974079211:web:2ca0c2a2d2f2283afc28ae",
+  measurementId: "G-ETF938ED3L",
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
 const canvas = document.getElementById("parkingCanvas");
 const ctx = canvas.getContext("2d");
 const statusDisplay = document.getElementById("status-display");
@@ -67,7 +81,21 @@ const parkingLotStrips = [
 
 const spaces = [];
 
-function drawParkingSpace(x, y, index, occupied, width = 60, height = 90) {
+function getLastName(fullname) {
+  if (!fullname) return "—";
+  const parts = fullname.trim().split(/\s+/);
+  return parts.length > 1 ? parts[parts.length - 1] : parts[0];
+}
+
+function drawParkingSpace(
+  x,
+  y,
+  sname,
+  index,
+  occupied,
+  width = 60,
+  height = 90
+) {
   ctx.fillStyle = (occupied && "#FF2222") || "#2ecc71"; // Green
 
   ctx.fillRect(x, y, width, height);
@@ -83,6 +111,13 @@ function drawParkingSpace(x, y, index, occupied, width = 60, height = 90) {
   ctx.font = "30px sans-serif";
   const text = ctx.measureText(index);
   ctx.fillText(index, x + width / 2 - text.width / 2, y + height * 0.6);
+
+  if (sname) {
+    let converted = getLastName(sname);
+    ctx.font = "12px sans-serif";
+    const stext = ctx.measureText(converted);
+    ctx.fillText(converted, x + width / 2 - stext.width / 2, y + height * 0.8);
+  }
 }
 
 function buildMap() {
@@ -102,8 +137,6 @@ function buildMap() {
 
   spaces.push(new LotSpace(790, 630, 125, false));
   spaces.push(new LotSpace(860, 660, 126, true));
-
-  spaces[43].occupied = true;
 }
 
 function drawMap() {
@@ -116,9 +149,23 @@ function drawMap() {
 
   for (space of spaces) {
     if (!space.rotated) {
-      drawParkingSpace(space.x, space.y, space.index, space.occupied);
+      drawParkingSpace(
+        space.x,
+        space.y,
+        space.studentName,
+        space.index,
+        space.occupied
+      );
     } else {
-      drawParkingSpace(space.x, space.y, space.index, space.occupied, 90, 60);
+      drawParkingSpace(
+        space.x,
+        space.y,
+        space.studentName,
+        space.index,
+        space.occupied,
+        90,
+        60
+      );
     }
   }
 
@@ -177,3 +224,18 @@ buildMap();
 console.log(spaces);
 
 drawMap();
+
+db.ref("students").on("value", (snap) => {
+  snap.forEach((child) => {
+    console.log(child.val());
+    if (child.val().parkingSpot) {
+      for (x of spaces) {
+        if (Number(x.index) == Number(child.val().parkingSpot)) {
+          x.occupied = true;
+          x.studentName = child.val().studentName;
+        }
+      }
+    }
+  });
+  drawMap();
+});
