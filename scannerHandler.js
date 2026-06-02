@@ -27,6 +27,7 @@ const statusMsg = document.getElementById("statusMsg");
 
 let currentStudents = [];
 let isFrozen = false;
+let ocrWorker = null; // Store persistent background worker instance
 
 // Fetch snapshot of active records
 db.ref("students").on("value", (snap) => {
@@ -36,8 +37,10 @@ db.ref("students").on("value", (snap) => {
   });
 });
 
-async function startCamera() {
+// Initialize both Camera stream and Tesseract background worker in parallel
+async function initializeApp() {
   try {
+    // 1. Fire up camera interface
     const constraints = {
       video: {
         facingMode: "environment",
@@ -48,29 +51,45 @@ async function startCamera() {
     };
     const stream = await navigator.mediaDevices.getUserMedia(constraints);
     video.srcObject = stream;
+
+    // 2. Pre-initialize structural Tesseract worker to bypass mobile execution delays
+    showStatus("Initializing backend recognition components...", "success");
+    ocrWorker = await Tesseract.createWorker("eng");
+    showStatus("System status: Ready for scanning.", "success");
   } catch (err) {
-    console.error("Camera access error:", err);
-    showStatus("Camera access denied. Ensure you are using HTTPS.", "error");
+    console.error("Initialization Error:", err);
+    showStatus(
+      "App Setup Error: " +
+        (err.message || "Camera permission denied or invalid protocol."),
+      "error"
+    );
   }
 }
 
-// Main Scan Execution Control
+// Global Main Scan Trigger Loop
 scanBtn.addEventListener("click", async () => {
   if (isFrozen) {
     resetScanner();
     return;
   }
 
-  // Fallback verification check to prevent 0-dimension mathematical issues
   if (!video.srcObject || video.videoWidth === 0 || video.videoHeight === 0) {
     showStatus(
-      "Camera feed layout engine is initializing. Try again in a second.",
+      "Camera matrix stream is not stable yet. Please hold steady.",
       "error"
     );
     return;
   }
 
-  // 1. Instantly freeze layout imagery
+  if (!ocrWorker) {
+    showStatus(
+      "OCR components are compiling background layers. Please wait.",
+      "error"
+    );
+    return;
+  }
+
+  // 1. Snapshot layout view instantly
   freezeFrame();
 
   scanBtn.disabled = true;
@@ -78,23 +97,24 @@ scanBtn.addEventListener("click", async () => {
   resultCard.classList.remove("hidden");
   detectedPlateEl.textContent = "Analyzing...";
   matchStatus.className = "match-badge checking";
-  matchStatus.textContent = "Processing image...";
+  matchStatus.textContent = "Extracting Matrix Coordinates...";
   matchDetails.innerHTML = "";
 
   try {
-    // 2. Extract isolated image target payload safely
-    const croppedDataUrl = getCroppedTargetZone();
-
-    if (!croppedDataUrl) {
-      throw new Error("Target matrix could not be calculated properly.");
+    // 2. Safely crop target boundary
+    const croppedCanvas = getCroppedTargetZone();
+    if (!croppedCanvas) {
+      throw new Error(
+        "Target matrix could not be resolved from view dimensions."
+      );
     }
 
-    matchStatus.textContent = "Running Character OCR...";
+    matchStatus.textContent = "Running Character Identification...";
 
-    // 3. Send isolated text capture to Tesseract via DataURL string format
+    // 3. Process structural OCR using the initialized background engine
     const {
       data: { text },
-    } = await Tesseract.recognize(croppedDataUrl, "eng");
+    } = await ocrWorker.recognize(croppedCanvas);
     const cleanedPlate = text
       .toUpperCase()
       .replace(/[^A-Z0-9]/g, "")
@@ -103,19 +123,26 @@ scanBtn.addEventListener("click", async () => {
     if (!cleanedPlate) {
       detectedPlateEl.textContent = "???";
       matchStatus.className = "match-badge missing";
-      matchStatus.textContent = "No Text Detected";
+      matchStatus.textContent = "No Text Located";
       matchDetails.innerHTML =
-        "<p>Could not read text inside the red box. Ensure lighting is clear and press 'Reset Camera' to try again.</p>";
+        "<p>Could not isolate plate numbers within the red box. Tap 'Reset Camera' and try again.</p>";
     } else {
       detectedPlateEl.textContent = cleanedPlate;
       lookupPlate(cleanedPlate);
     }
   } catch (err) {
-    console.error("Scanning Error Intercepted:", err);
-    showStatus("Scanning failed: " + err.message, "error");
+    console.error("Intercepted Processing Crash Context:", err);
+
+    // Fallback extraction block to read deep object errors securely
+    let diagnosticErrorMessage = "Processing pipeline exception encountered.";
+    if (err && typeof err === "string") diagnosticErrorMessage = err;
+    else if (err && err.message) diagnosticErrorMessage = err.message;
+    else if (err && typeof err === "object")
+      diagnosticErrorMessage = JSON.stringify(err);
+
     matchStatus.className = "match-badge missing";
-    matchStatus.textContent = "Error Occurred";
-    matchDetails.innerHTML = `<p>Error details: ${err.message}</p>`;
+    matchStatus.textContent = "Scan Interrupted";
+    matchDetails.innerHTML = `<p>Error details: ${diagnosticErrorMessage}</p>`;
   } finally {
     scanBtn.disabled = false;
     scanBtn.textContent = "Reset Camera";
@@ -128,7 +155,7 @@ function freezeFrame() {
   canvas.height = video.videoHeight;
   const ctx = canvas.getContext("2d");
 
-  // Save frame state data
+  // Stamp video imagery data frame to localized canvas storage
   ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
   video.classList.add("hidden");
@@ -145,39 +172,35 @@ function resetScanner() {
   isFrozen = false;
 }
 
-// Safe layout extraction tool
+// Extracts bounding coordinates cleanly
 function getCroppedTargetZone() {
   const containerRect = videoContainer.getBoundingClientRect();
   const boxRect = targetBox.getBoundingClientRect();
 
-  // Safety boundary configuration validation check
-  if (containerRect.width === 0 || containerRect.height === 0) {
-    return null;
-  }
+  if (containerRect.width === 0 || containerRect.height === 0) return null;
 
-  // Map percentage position metrics safely
+  // Track exact display layout box percentages
   const xPct = (boxRect.left - containerRect.left) / containerRect.width;
   const yPct = (boxRect.top - containerRect.top) / containerRect.height;
   const wPct = boxRect.width / containerRect.width;
   const hPct = boxRect.height / containerRect.height;
 
-  // Calculate coordinates matching pixel sources
+  // Map to actual underlying video storage file resolution bounds
   const sx = canvas.width * xPct;
   const sy = canvas.height * yPct;
   const sw = canvas.width * wPct;
   const sh = canvas.height * hPct;
 
-  // Create isolated canvas drawing instance
   const cropCanvas = document.createElement("canvas");
   cropCanvas.width = sw;
   cropCanvas.height = sh;
   const cropCtx = cropCanvas.getContext("2d");
 
-  // Crop operation slice mechanics implementation
+  // Crop sliced snapshot directly out of localized stored state
   cropCtx.drawImage(canvas, sx, sy, sw, sh, 0, 0, sw, sh);
 
-  // Return format altered to raw text string asset payload data string to pass seamlessly
-  return cropCanvas.toDataURL("image/png");
+  // Return raw HTML Canvas Element to bypass Safari toDataURL CORS security rules
+  return cropCanvas;
 }
 
 function lookupPlate(scannedText) {
@@ -226,4 +249,5 @@ function showStatus(msg, type) {
   }, 5000);
 }
 
-window.addEventListener("DOMContentLoaded", startCamera);
+// Run initial configurations cleanly upon window load sequence termination
+window.addEventListener("DOMContentLoaded", initializeApp);
