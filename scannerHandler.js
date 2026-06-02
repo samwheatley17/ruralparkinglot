@@ -50,27 +50,27 @@ async function startCamera() {
     video.srcObject = stream;
   } catch (err) {
     console.error("Camera access error:", err);
-    showStatus(
-      "Camera access denied or unavailable. Ensure you are on HTTPS.",
-      "error"
-    );
+    showStatus("Camera access denied. Ensure you are using HTTPS.", "error");
   }
 }
 
-// Global click flow
+// Main Scan Execution Control
 scanBtn.addEventListener("click", async () => {
-  // If the view is currently frozen on a scan, tap resets back to live stream
   if (isFrozen) {
     resetScanner();
     return;
   }
 
-  if (!video.srcObject) {
-    showStatus("Camera stream is not ready.", "error");
+  // Fallback verification check to prevent 0-dimension mathematical issues
+  if (!video.srcObject || video.videoWidth === 0 || video.videoHeight === 0) {
+    showStatus(
+      "Camera feed layout engine is initializing. Try again in a second.",
+      "error"
+    );
     return;
   }
 
-  // Freeze the frame visually
+  // 1. Instantly freeze layout imagery
   freezeFrame();
 
   scanBtn.disabled = true;
@@ -78,22 +78,23 @@ scanBtn.addEventListener("click", async () => {
   resultCard.classList.remove("hidden");
   detectedPlateEl.textContent = "Analyzing...";
   matchStatus.className = "match-badge checking";
-  matchStatus.textContent = "Isolating target zone...";
+  matchStatus.textContent = "Processing image...";
   matchDetails.innerHTML = "";
 
-  // Perform precise cropping of the red target box region
-  const croppedCanvas = getCroppedTargetZone();
-  if (!croppedCanvas) {
-    showStatus("Failed to analyze dimensions.", "error");
-    resetScanner();
-    return;
-  }
-
   try {
-    // Send only the cropped target box canvas segment to Tesseract
+    // 2. Extract isolated image target payload safely
+    const croppedDataUrl = getCroppedTargetZone();
+
+    if (!croppedDataUrl) {
+      throw new Error("Target matrix could not be calculated properly.");
+    }
+
+    matchStatus.textContent = "Running Character OCR...";
+
+    // 3. Send isolated text capture to Tesseract via DataURL string format
     const {
       data: { text },
-    } = await Tesseract.recognize(croppedCanvas, "eng");
+    } = await Tesseract.recognize(croppedDataUrl, "eng");
     const cleanedPlate = text
       .toUpperCase()
       .replace(/[^A-Z0-9]/g, "")
@@ -104,14 +105,17 @@ scanBtn.addEventListener("click", async () => {
       matchStatus.className = "match-badge missing";
       matchStatus.textContent = "No Text Detected";
       matchDetails.innerHTML =
-        "<p>Could not isolate plate numbers within the red box. Tap 'Reset Camera' to try again.</p>";
+        "<p>Could not read text inside the red box. Ensure lighting is clear and press 'Reset Camera' to try again.</p>";
     } else {
       detectedPlateEl.textContent = cleanedPlate;
       lookupPlate(cleanedPlate);
     }
   } catch (err) {
-    console.error(err);
-    showStatus("OCR Processing failed: " + err.message, "error");
+    console.error("Scanning Error Intercepted:", err);
+    showStatus("Scanning failed: " + err.message, "error");
+    matchStatus.className = "match-badge missing";
+    matchStatus.textContent = "Error Occurred";
+    matchDetails.innerHTML = `<p>Error details: ${err.message}</p>`;
   } finally {
     scanBtn.disabled = false;
     scanBtn.textContent = "Reset Camera";
@@ -119,16 +123,14 @@ scanBtn.addEventListener("click", async () => {
   }
 });
 
-// Captures a full resolution video frame and matches it to current screen aspect
 function freezeFrame() {
   canvas.width = video.videoWidth;
   canvas.height = video.videoHeight;
   const ctx = canvas.getContext("2d");
 
-  // Stamp current screen imagery onto canvas
+  // Save frame state data
   ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-  // Hide streaming layer elements, show raw frozen display canvas element
   video.classList.add("hidden");
   canvas.classList.remove("hidden");
   scannerOverlay.classList.add("hidden");
@@ -143,33 +145,39 @@ function resetScanner() {
   isFrozen = false;
 }
 
-// Mathematical calculation to isolate text *only* inside the target bounding container
+// Safe layout extraction tool
 function getCroppedTargetZone() {
-  // Read running elements runtime layout sizes
   const containerRect = videoContainer.getBoundingClientRect();
   const boxRect = targetBox.getBoundingClientRect();
 
-  // Find percentage position coordinates inside the container element box layout bounds
+  // Safety boundary configuration validation check
+  if (containerRect.width === 0 || containerRect.height === 0) {
+    return null;
+  }
+
+  // Map percentage position metrics safely
   const xPct = (boxRect.left - containerRect.left) / containerRect.width;
   const yPct = (boxRect.top - containerRect.top) / containerRect.height;
   const wPct = boxRect.width / containerRect.width;
   const hPct = boxRect.height / containerRect.height;
 
-  // Translate percentages directly to absolute source video dimensions coordinates
+  // Calculate coordinates matching pixel sources
   const sx = canvas.width * xPct;
   const sy = canvas.height * yPct;
   const sw = canvas.width * wPct;
   const sh = canvas.height * hPct;
 
-  // Render crop segment onto a dynamic temporary extraction canvas element runtime
+  // Create isolated canvas drawing instance
   const cropCanvas = document.createElement("canvas");
   cropCanvas.width = sw;
   cropCanvas.height = sh;
   const cropCtx = cropCanvas.getContext("2d");
 
-  // Source copy execution mapping arguments
+  // Crop operation slice mechanics implementation
   cropCtx.drawImage(canvas, sx, sy, sw, sh, 0, 0, sw, sh);
-  return cropCanvas;
+
+  // Return format altered to raw text string asset payload data string to pass seamlessly
+  return cropCanvas.toDataURL("image/png");
 }
 
 function lookupPlate(scannedText) {
