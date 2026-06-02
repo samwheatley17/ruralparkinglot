@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Plate Scanner</title>
+    <script
+      defer
+      src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"
+    ></script>
+    <script
+      defer
+      src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"
+    ></script>
+    <script
+      defer
+      src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"
+    ></script>
+    <script defer src="scannerHandler.js"></script>
+    <link rel="stylesheet" href="scanner.css" />
+  </head>
+  <body>
+    <div class="admin-container scanner-container">
+      <header class="admin-header">
+        <h1>Plate Enforcement Scanner</h1>
+        <p>
+          Scan a vehicle's license plate to verify active parking privileges.
+        </p>
+      </header>
+
+      <div class="camera-card">
+        <div class="video-container">
+          <video id="cameraStream" autoplay playsinline muted></video>
+          <div class="scanner-overlay">
+            <div class="target-box"></div>
+          </div>
+        </div>
+        <div class="camera-controls">
+          <button id="scanBtn" class="btn btn-primary">Scan Plate</button>
+        </div>
+      </div>
+
+      <div id="resultCard" class="result-card hidden">
+        <div class="result-header">
+          <span class="stat-label">Detected Text</span>
+          <h2 id="detectedPlate">—</h2>
+        </div>
+        <div id="matchStatus" class="match-badge">Checking Database...</div>
+        <div id="matchDetails" class="match-details"></div>
+      </div>
+
+      <div id="statusMsg" class="status-msg"></div>
+
+      <canvas id="captureCanvas" style="display: none"></canvas>
+    </div>
+  </body>
+</html>
