@@ -1,4 +1,3 @@
-/* Inherit base structural values matching admin.css */
 * {
     box-sizing: border-box;
     margin: 0;
@@ -20,7 +19,7 @@
     background-color: #FFFFFF;
     border: 2px solid #1A1A1A;
     width: 100%;
-    max-width: 600px; /* Slimmer max-width specialized for mobile layout */
+    max-width: 600px;
     padding: 25px;
     box-shadow: 6px 6px 0px #1A1A1A;
   }
@@ -44,27 +43,31 @@
     font-size: 13px;
   }
   
-  /* Camera Card Layout */
+  /* Camera viewport Wrapper Container */
   .camera-card {
-    border: 1.5px solid #1A1A1A;
-    background: #FFFFFF;
+    border: 2px solid #1A1A1A;
+    background: #000000;
     margin-bottom: 25px;
-    overflow: hidden;
+    position: relative;
   }
   
   .video-container {
     position: relative;
     width: 100%;
-    background: #000000;
+    overflow: hidden;
     line-height: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
   }
   
-  #cameraStream {
+  #cameraStream, #captureCanvas {
     width: 100%;
     height: auto;
+    object-fit: cover;
   }
   
-  /* Targeting Window Overlay UI */
+  /* Bounding Target Alignment UI overlay framework */
   .scanner-overlay {
     position: absolute;
     top: 0;
@@ -75,25 +78,29 @@
     justify-content: center;
     align-items: center;
     pointer-events: none;
+    z-index: 2;
   }
   
   .target-box {
-    width: 75%;
-    height: 35%;
+    width: 80%;
+    height: 25%;
     border: 3px dashed #D32F2F;
     box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.4);
     position: relative;
   }
   
-  .camera-controls {
-    padding: 15px;
-    border-top: 1.5px solid #1A1A1A;
-    background: #FFFFFF;
+  /* Fixed Overlay Button placement logic inside base view windows */
+  .overlay-btn {
+    position: absolute;
+    bottom: 20px;
+    left: 5%;
+    width: 90% !important;
+    z-index: 10;
+    box-shadow: 4px 4px 0px #1A1A1A;
   }
   
-  /* Buttons Styling */
+  /* Buttons System configuration style standards */
   .btn {
-    width: 100%;
     padding: 14px 24px;
     font-size: 14px;
     font-weight: 700;
@@ -107,21 +114,22 @@
   .btn-primary {
     background-color: #D32F2F;
     color: #FFFFFF;
-    border: 2px solid #D32F2F;
+    border: 2px solid #1A1A1A;
   }
   
   .btn-primary:hover {
     background-color: #1A1A1A;
     border-color: #1A1A1A;
+    color: #FFFFFF;
   }
   
   .btn-primary:disabled {
     background-color: #999999;
-    border-color: #999999;
+    border-color: #1A1A1A;
     cursor: not-allowed;
   }
   
-  /* Scanning & Result Output Panels */
+  /* Output Display panels */
   .result-card {
     border: 1.5px solid #1A1A1A;
     padding: 20px;
@@ -151,7 +159,6 @@
     letter-spacing: 1px;
   }
   
-  /* Response Badges matching system theme colors */
   .match-badge {
     display: block;
     padding: 10px;
@@ -187,7 +194,6 @@
   
   .hidden { display: none !important; }
   
-  /* Status Messages */
   .status-msg {
     margin-top: 15px;
     padding: 12px;

@@ -29,14 +29,17 @@
       </header>
 
       <div class="camera-card">
-        <div class="video-container">
+        <div class="video-container" id="videoContainer">
           <video id="cameraStream" autoplay playsinline muted></video>
-          <div class="scanner-overlay">
-            <div class="target-box"></div>
+          <canvas id="captureCanvas" class="hidden"></canvas>
+
+          <div class="scanner-overlay" id="scannerOverlay">
+            <div class="target-box" id="targetBox"></div>
           </div>
-        </div>
-        <div class="camera-controls">
-          <button id="scanBtn" class="btn btn-primary">Scan Plate</button>
+
+          <button id="scanBtn" class="btn btn-primary overlay-btn">
+            Scan Plate
+          </button>
         </div>
       </div>
 
@@ -50,8 +53,6 @@
       </div>
 
       <div id="statusMsg" class="status-msg"></div>
-
-      <canvas id="captureCanvas" style="display: none"></canvas>
     </div>
   </body>
 </html>
