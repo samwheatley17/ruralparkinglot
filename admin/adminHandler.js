@@ -13,6 +13,12 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
+// ---- Initialize EmailJS ----
+// Replace 'YOUR_PUBLIC_KEY' with your actual EmailJS Public Key from your dashboard
+emailjs.init({
+  publicKey: "oxPcd7LvTrb_bE76c",
+});
+
 const TOTAL_SPOTS = 126;
 
 const tbody = document.getElementById("studentTableBody");
@@ -89,6 +95,37 @@ db.ref("students").on("value", (snap) => {
   render(currentStudents);
 });
 
+// ---- Helper function to send notification email ----
+async function sendNotificationEmail(student, isAssigned, spotNumber = null) {
+  // Check if student object has an email field (assuming it's 'studentEmail' or 'email')
+  const emailAddress = student.studentEmail || student.email;
+  if (!emailAddress) {
+    console.warn(`No email address found for student: ${student.studentName}`);
+    return;
+  }
+
+  const timeMapping = { full_day: "Full Day", am: "AM", pm: "PM" };
+  const formattedTime = timeMapping[student.time] || "—";
+
+  const customMessage = isAssigned
+    ? `Congratulations! Your application for a parking permit has been approved. You have been assigned to Spot #${spotNumber}.`
+    : `Thank you for your application. Unfortunately, due to high demand and limited capacity, you have been placed on the waitlist. We will notify you if a spot opens up.`;
+  const templateParams = {
+    to_email: emailAddress, // Used in the "To Email" configuration field of your template
+    name: student.studentName, // Maps to your {{name}} placeholder
+    time: formattedTime, // Maps to your {{time}} placeholder
+    message: customMessage, // Maps to your {{message}} placeholder
+  };
+
+  try {
+    // Replace 'YOUR_SERVICE_ID' and 'YOUR_TEMPLATE_ID' with your specific EmailJS credentials
+    await emailjs.send("service_ydf0qsc", "template_ev647pp", templateParams);
+    console.log(`Notification email sent to ${student.studentName}`);
+  } catch (error) {
+    console.error(`Failed to send email to ${student.studentName}:`, error);
+  }
+}
+
 // ---- Process & assign ----
 processBtn.addEventListener("click", async () => {
   if (currentStudents.length === 0) {
@@ -97,34 +134,44 @@ processBtn.addEventListener("click", async () => {
   }
 
   processBtn.disabled = true;
-  processBtn.textContent = "Processing...";
+  processBtn.textContent = "Processing & Emailing...";
 
   try {
     const sorted = sortByPriority(currentStudents);
     const updates = {};
     const assignedIds = new Set();
+    const emailPromises = []; // Store email tasks so they run simultaneously
 
     // Assign top N students to spots 1..N
     sorted.slice(0, TOTAL_SPOTS).forEach((student, i) => {
       const spotNumber = i + 1;
       updates[`students/${student.id}/parkingSpot`] = spotNumber;
       assignedIds.add(student.id);
+
+      // Queue an "Approved" email
+      emailPromises.push(sendNotificationEmail(student, true, spotNumber));
     });
 
-    // Clear anyone who previously had a spot but didn't make the cut
-    currentStudents.forEach((s) => {
-      if (s.parkingSpot && !assignedIds.has(s.id)) {
-        updates[`students/${s.id}/parkingSpot`] = null;
+    // Clear anyone who previously had a spot but didn't make the cut (Waitlisted)
+    sorted.slice(TOTAL_SPOTS).forEach((student) => {
+      if (student.parkingSpot) {
+        updates[`students/${student.id}/parkingSpot`] = null;
       }
+      // Queue a "Waitlisted" email
+      emailPromises.push(sendNotificationEmail(student, false));
     });
 
+    // 1. Update the Firebase Database
     await db.ref().update(updates);
+
+    // 2. Fire off all emails in parallel
+    await Promise.all(emailPromises);
 
     const waitlisted = Math.max(0, sorted.length - TOTAL_SPOTS);
     showStatus(
       `Assigned ${assignedIds.size} spot${
         assignedIds.size === 1 ? "" : "s"
-      }. ` + `${waitlisted} waitlisted.`,
+      }. Emails dispatched. ${waitlisted} waitlisted.`,
       "success"
     );
   } catch (err) {
