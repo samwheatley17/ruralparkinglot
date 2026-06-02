@@ -41,7 +41,6 @@ function sortByPriority(students) {
     return avgB - avgA; // higher avg first
   });
 }
-
 // ---- Render the table ----
 function render(students) {
   if (students.length === 0) {
@@ -70,7 +69,12 @@ function render(students) {
         <td>${s.average || "—"}</td>
         <td>${s.attendance ?? "—"}</td>
         <td>${formatTime(s.time)}</td>
-        <td>${s.vehicle.plate || "—"}</td>
+        <td>
+          <span class="plate-text">${s.vehicle?.plate || "—"}</span>
+          <button class="edit-plate-btn" data-id="${
+            s.id
+          }" style="margin-left: 5px; padding: 2px 6px; font-size: 11px; cursor: pointer;">✏️</button>
+        </td>
         <td>${
           s.parkingSpot
             ? `<span class="spot-badge">${s.parkingSpot}</span>`
@@ -190,3 +194,38 @@ function showStatus(msg, type) {
     statusMsg.className = "status-msg";
   }, 5000);
 }
+
+// ---- Edit License Plate Handler ----
+tbody.addEventListener("click", async (e) => {
+  // Check if the clicked element is the edit button
+  if (e.target.classList.contains("edit-plate-btn")) {
+    const studentId = e.target.getAttribute("data-id");
+
+    // Find the student locally to pre-fill their current plate
+    const student = currentStudents.find((s) => s.id === studentId);
+    const currentPlate = student?.vehicle?.plate || "";
+
+    // Prompt the admin for the new license plate
+    const newPlate = prompt(
+      `Enter new license plate for ${student.studentName}:`,
+      currentPlate
+    );
+
+    // If the user didn't hit cancel and the value actually changed
+    if (newPlate !== null) {
+      const trimmedPlate = newPlate.trim().toUpperCase(); // Keep plates neat/consistent
+
+      try {
+        // Update the path in Firebase Realtime Database
+        await db.ref(`students/${studentId}/vehicle/plate`).set(trimmedPlate);
+        showStatus(
+          `Updated license plate for ${student.studentName}!`,
+          "success"
+        );
+      } catch (err) {
+        console.error(err);
+        showStatus("Failed to update license plate: " + err.message, "error");
+      }
+    }
+  }
+});
