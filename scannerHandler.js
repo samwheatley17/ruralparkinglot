@@ -17,7 +17,6 @@ const video = document.getElementById("cameraStream");
 const scanBtn = document.getElementById("scanBtn");
 const canvas = document.getElementById("captureCanvas");
 const videoContainer = document.getElementById("videoContainer");
-const targetBox = document.getElementById("targetBox");
 const scannerOverlay = document.getElementById("scannerOverlay");
 const resultCard = document.getElementById("resultCard");
 const detectedPlateEl = document.getElementById("detectedPlate");
@@ -27,9 +26,8 @@ const statusMsg = document.getElementById("statusMsg");
 
 let currentStudents = [];
 let isFrozen = false;
-let ocrWorker = null; // Store persistent background worker instance
 
-// Fetch snapshot of active records
+// Fetch snapshot of active records from Firebase Realtime Database
 db.ref("students").on("value", (snap) => {
   currentStudents = [];
   snap.forEach((child) => {
@@ -37,10 +35,9 @@ db.ref("students").on("value", (snap) => {
   });
 });
 
-// Initialize both Camera stream and Tesseract background worker in parallel
-async function initializeApp() {
+// Stream standard environment rear-facing camera configuration
+async function startCamera() {
   try {
-    // 1. Fire up camera interface
     const constraints = {
       video: {
         facingMode: "environment",
@@ -51,22 +48,17 @@ async function initializeApp() {
     };
     const stream = await navigator.mediaDevices.getUserMedia(constraints);
     video.srcObject = stream;
-
-    // 2. Pre-initialize structural Tesseract worker to bypass mobile execution delays
-    showStatus("Initializing backend recognition components...", "success");
-    ocrWorker = await Tesseract.createWorker("eng");
-    showStatus("System status: Ready for scanning.", "success");
+    showStatus("Camera connection ready.", "success");
   } catch (err) {
-    console.error("Initialization Error:", err);
+    console.error("Camera access error:", err);
     showStatus(
-      "App Setup Error: " +
-        (err.message || "Camera permission denied or invalid protocol."),
+      "Camera access denied. Ensure you are utilizing an HTTPS portal.",
       "error"
     );
   }
 }
 
-// Global Main Scan Trigger Loop
+// Main Scan Execution Flow Control
 scanBtn.addEventListener("click", async () => {
   if (isFrozen) {
     resetScanner();
@@ -75,46 +67,31 @@ scanBtn.addEventListener("click", async () => {
 
   if (!video.srcObject || video.videoWidth === 0 || video.videoHeight === 0) {
     showStatus(
-      "Camera matrix stream is not stable yet. Please hold steady.",
+      "Camera engine layout warming up. Try again in a brief second.",
       "error"
     );
     return;
   }
 
-  if (!ocrWorker) {
-    showStatus(
-      "OCR components are compiling background layers. Please wait.",
-      "error"
-    );
-    return;
-  }
-
-  // 1. Snapshot layout view instantly
+  // 1. Instantly freeze snapshot image data context frame
   freezeFrame();
 
   scanBtn.disabled = true;
   scanBtn.textContent = "Processing OCR...";
   resultCard.classList.remove("hidden");
-  detectedPlateEl.textContent = "Analyzing...";
+  detectedPlateEl.textContent = "Analyzing full frame...";
   matchStatus.className = "match-badge checking";
-  matchStatus.textContent = "Extracting Matrix Coordinates...";
+  matchStatus.textContent = "Processing Character OCR...";
   matchDetails.innerHTML = "";
 
   try {
-    // 2. Safely crop target boundary
-    const croppedCanvas = getCroppedTargetZone();
-    if (!croppedCanvas) {
-      throw new Error(
-        "Target matrix could not be resolved from view dimensions."
-      );
-    }
+    // 2. Extract full base64 data string payload directly from full frozen canvas frame
+    const rawFullImageDataUrl = canvas.toDataURL("image/png");
 
-    matchStatus.textContent = "Running Character Identification...";
-
-    // 3. Process structural OCR using the initialized background engine
+    // 3. Send image payload straight to Tesseract using basic global processor route
     const {
       data: { text },
-    } = await ocrWorker.recognize(croppedCanvas);
+    } = await Tesseract.recognize(rawFullImageDataUrl, "eng");
     const cleanedPlate = text
       .toUpperCase()
       .replace(/[^A-Z0-9]/g, "")
@@ -122,27 +99,15 @@ scanBtn.addEventListener("click", async () => {
 
     if (!cleanedPlate) {
       detectedPlateEl.textContent = "???";
-      matchStatus.className = "match-badge missing";
-      matchStatus.textContent = "No Text Located";
-      matchDetails.innerHTML =
-        "<p>Could not isolate plate numbers within the red box. Tap 'Reset Camera' and try again.</p>";
+      showManualOverrideForm("");
     } else {
       detectedPlateEl.textContent = cleanedPlate;
       lookupPlate(cleanedPlate);
     }
   } catch (err) {
-    console.error("Intercepted Processing Crash Context:", err);
-
-    // Fallback extraction block to read deep object errors securely
-    let diagnosticErrorMessage = "Processing pipeline exception encountered.";
-    if (err && typeof err === "string") diagnosticErrorMessage = err;
-    else if (err && err.message) diagnosticErrorMessage = err.message;
-    else if (err && typeof err === "object")
-      diagnosticErrorMessage = JSON.stringify(err);
-
-    matchStatus.className = "match-badge missing";
-    matchStatus.textContent = "Scan Interrupted";
-    matchDetails.innerHTML = `<p>Error details: ${diagnosticErrorMessage}</p>`;
+    console.error("Scanning Execution Fault Intercepted:", err);
+    detectedPlateEl.textContent = "Error";
+    showManualOverrideForm("");
   } finally {
     scanBtn.disabled = false;
     scanBtn.textContent = "Reset Camera";
@@ -155,55 +120,27 @@ function freezeFrame() {
   canvas.height = video.videoHeight;
   const ctx = canvas.getContext("2d");
 
-  // Stamp video imagery data frame to localized canvas storage
+  // Stash direct image pixels from original streaming resolution matrix
   ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
   video.classList.add("hidden");
   canvas.classList.remove("hidden");
-  scannerOverlay.classList.add("hidden");
+  if (scannerOverlay) scannerOverlay.classList.add("hidden");
 }
 
 function resetScanner() {
   video.classList.remove("hidden");
   canvas.classList.add("hidden");
-  scannerOverlay.classList.remove("hidden");
+  if (scannerOverlay) scannerOverlay.classList.remove("hidden");
   resultCard.classList.add("hidden");
   scanBtn.textContent = "Scan Plate";
   isFrozen = false;
 }
 
-// Extracts bounding coordinates cleanly
-function getCroppedTargetZone() {
-  const containerRect = videoContainer.getBoundingClientRect();
-  const boxRect = targetBox.getBoundingClientRect();
-
-  if (containerRect.width === 0 || containerRect.height === 0) return null;
-
-  // Track exact display layout box percentages
-  const xPct = (boxRect.left - containerRect.left) / containerRect.width;
-  const yPct = (boxRect.top - containerRect.top) / containerRect.height;
-  const wPct = boxRect.width / containerRect.width;
-  const hPct = boxRect.height / containerRect.height;
-
-  // Map to actual underlying video storage file resolution bounds
-  const sx = canvas.width * xPct;
-  const sy = canvas.height * yPct;
-  const sw = canvas.width * wPct;
-  const sh = canvas.height * hPct;
-
-  const cropCanvas = document.createElement("canvas");
-  cropCanvas.width = sw;
-  cropCanvas.height = sh;
-  const cropCtx = cropCanvas.getContext("2d");
-
-  // Crop sliced snapshot directly out of localized stored state
-  cropCtx.drawImage(canvas, sx, sy, sw, sh, 0, 0, sw, sh);
-
-  // Return raw HTML Canvas Element to bypass Safari toDataURL CORS security rules
-  return cropCanvas;
-}
-
+// Cross-reference strings and layout results dynamically
 function lookupPlate(scannedText) {
+  if (!scannedText) return;
+
   const match = currentStudents.find((student) => {
     if (!student.vehicle || !student.vehicle.plate) return false;
     const studentPlate = student.vehicle.plate
@@ -224,6 +161,7 @@ function lookupPlate(scannedText) {
             match.parkingSpot
           }</span></p>
           <p><strong>Registered Plate:</strong> ${match.vehicle.plate}</p>
+          ${getManualOverrideLink(scannedText)}
         `;
     } else {
       matchStatus.className = "match-badge waitlisted";
@@ -232,14 +170,63 @@ function lookupPlate(scannedText) {
           <p><strong>Driver:</strong> ${match.studentName || "—"}</p>
           <p><strong>Status:</strong> Applicant is not currently assigned an active spot.</p>
           <p><strong>Registered Plate:</strong> ${match.vehicle.plate}</p>
+          ${getManualOverrideLink(scannedText)}
         `;
     }
   } else {
     matchStatus.className = "match-badge missing";
     matchStatus.textContent = "Not On List ❌";
-    matchDetails.innerHTML = `<p>No active applicant records matching this vehicle plate were located.</p>`;
+    matchDetails.innerHTML = `
+        <p>No active applicant records matching this vehicle plate were located.</p>
+        ${getManualOverrideLink(scannedText)}
+      `;
   }
 }
+
+// Generate a clean HTML switch to activate input overlay if text was misread
+function getManualOverrideLink(failedTextStr) {
+  return `
+      <div style="margin-top: 15px; border-top: 1px dashed #ccc; padding-top: 12px; text-align: center;">
+        <button type="button" class="fallback-input-btn" onclick="window.activateManualInput('${failedTextStr}')" style="background: none; border: none; color: #0066cc; text-decoration: underline; font-size: 0.9rem; cursor: pointer;">
+          Incorrect match? Type plate manually
+        </button>
+      </div>
+    `;
+}
+
+// Form element architecture layout renderer injection loop
+function showManualOverrideForm(initialValue = "") {
+  matchStatus.className = "match-badge checking";
+  matchStatus.textContent = "Manual Input Mode";
+
+  matchDetails.innerHTML = `
+      <div class="manual-input-container" style="padding: 5px 0;">
+        <p style="margin: 0 0 8px 0; font-size: 0.9rem; color: #555;">Enter the license plate character sequence directly:</p>
+        <input type="text" id="manualPlateField" value="${initialValue}" placeholder="E.g. ABC123" style="width: 100%; box-sizing: border-box; padding: 10px; font-size: 1.1rem; text-transform: uppercase; border: 2px solid #333; border-radius: 4px; font-family: monospace; letter-spacing: 1px; margin-bottom: 10px;" />
+        <button id="submitManualBtn" style="width: 100%; padding: 10px; background-color: #222; color: #fff; font-weight: bold; border: none; border-radius: 4px; cursor: pointer; font-size: 1rem;">Verify License Plate</button>
+      </div>
+    `;
+
+  // Attach button event listener
+  document.getElementById("submitManualBtn").addEventListener("click", () => {
+    const fieldVal = document
+      .getElementById("manualPlateField")
+      .value.toUpperCase()
+      .replace(/[^A-Z0-9]/g, "")
+      .trim();
+    if (!fieldVal) {
+      showStatus("Please input a valid sequence to check records.", "error");
+      return;
+    }
+    detectedPlateEl.textContent = fieldVal;
+    lookupPlate(fieldVal);
+  });
+}
+
+// Expose fallback window scope execution controller link handler explicitly
+window.activateManualInput = function (prefill) {
+  showManualOverrideForm(prefill);
+};
 
 function showStatus(msg, type) {
   statusMsg.textContent = msg;
@@ -249,5 +236,4 @@ function showStatus(msg, type) {
   }, 5000);
 }
 
-// Run initial configurations cleanly upon window load sequence termination
-window.addEventListener("DOMContentLoaded", initializeApp);
+window.addEventListener("DOMContentLoaded", startCamera);
