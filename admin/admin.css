@@ -44,6 +44,17 @@
     color: #666666;
     font-size: 14px;
   }
+
+  .whole-header {
+    display:flex;
+    justify-content:space-between;
+  }
+
+  .header-buttons{
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  }
   
   /* Stats Row */
   .stats-row {
@@ -199,7 +210,19 @@
     border-color: #999999;
     cursor: not-allowed;
   }
+
+  .btn-secondary {
+    background-color: #ffffff;
+    color: #D32F2F;
+    border: 2px solid #D32F2F;
+  }
+
+  .btn-secondary:hover {
+    background-color: #1A1A1A;
+    border-color: #1A1A1A;
+  }
   
+
   /* Status Message */
   .status-msg {
     margin-top: 20px;

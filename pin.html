@@ -1,0 +1,236 @@
+
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Admin Access</title>
+    <style>
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      }
+ 
+      body {
+        background-color: #F9F9F9;
+        color: #1A1A1A;
+        min-height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 40px 20px;
+      }
+ 
+      .pin-container {
+        background-color: #FFFFFF;
+        border: 2px solid #1A1A1A;
+        padding: 40px;
+        width: 100%;
+        max-width: 360px;
+        box-shadow: 6px 6px 0px #1A1A1A;
+      }
+ 
+      .pin-header {
+        border-left: 5px solid #D32F2F;
+        padding-left: 15px;
+        margin-bottom: 30px;
+      }
+ 
+      .pin-header h1 {
+        font-size: 20px;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 5px;
+      }
+ 
+      .pin-header p {
+        color: #666666;
+        font-size: 13px;
+      }
+ 
+      .pin-display {
+        font-size: 2rem;
+        font-weight: 800;
+        letter-spacing: 0.6em;
+        color: #1A1A1A;
+        background-color: #F9F9F9;
+        border: 1.5px solid #1A1A1A;
+        padding: 16px;
+        text-align: center;
+        margin-bottom: 8px;
+        transition: border-color 0.2s, color 0.2s;
+      }
+ 
+      .pin-display.error {
+        border-color: #D32F2F;
+        color: #D32F2F;
+        animation: shake 0.35s ease;
+      }
+ 
+      @keyframes shake {
+        0%, 100% { transform: translateX(0); }
+        20%       { transform: translateX(-8px); }
+        40%       { transform: translateX(8px); }
+        60%       { transform: translateX(-5px); }
+        80%       { transform: translateX(5px); }
+      }
+ 
+      .error-msg {
+        font-size: 12px;
+        font-weight: 600;
+        color: #D32F2F;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        height: 18px;
+        margin-bottom: 20px;
+      }
+ 
+      .keypad {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 8px;
+      }
+ 
+      .key {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        font-size: 1.2rem;
+        font-weight: 700;
+        padding: 18px;
+        background-color: #FFFFFF;
+        color: #1A1A1A;
+        border: 1.5px solid #1A1A1A;
+        cursor: pointer;
+        transition: all 0.15s ease;
+        border-radius: 0;
+      }
+ 
+      .key:hover  { background-color: #F9F9F9; }
+      .key:active { background-color: #1A1A1A; color: #FFFFFF; }
+ 
+      .key.clear {
+        color: #D32F2F;
+        border-color: #D32F2F;
+      }
+      .key.clear:hover { background-color: #FFF8F8; }
+ 
+      .key.enter {
+        grid-column: span 2;
+        background-color: #D32F2F;
+        color: #FFFFFF;
+        border-color: #D32F2F;
+        font-size: 13px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+      .key.enter:hover  { background-color: #1A1A1A; border-color: #1A1A1A; }
+      .key.enter:active { background-color: #000000; }
+ 
+      .back-link {
+        display: block;
+        margin-top: 20px;
+        font-size: 12px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: #666666;
+        text-decoration: none;
+        text-align: center;
+      }
+      .back-link:hover { color: #1A1A1A; }
+    </style>
+  </head>
+  <body>
+ 
+    <div class="pin-container">
+      <div class="pin-header">
+        <h1>Admin Access</h1>
+        <p>Enter your 4-digit PIN to continue.</p>
+      </div>
+ 
+      <div class="pin-display" id="pinDisplay">––––</div>
+      <div id="errorMsg" class="error-msg"></div>
+ 
+      <div class="keypad">
+        <button class="key" onclick="pressKey('1')">1</button>
+        <button class="key" onclick="pressKey('2')">2</button>
+        <button class="key" onclick="pressKey('3')">3</button>
+        <button class="key" onclick="pressKey('4')">4</button>
+        <button class="key" onclick="pressKey('5')">5</button>
+        <button class="key" onclick="pressKey('6')">6</button>
+        <button class="key" onclick="pressKey('7')">7</button>
+        <button class="key" onclick="pressKey('8')">8</button>
+        <button class="key" onclick="pressKey('9')">9</button>
+        <button class="key clear" onclick="clearPin()">⌫</button>
+        <button class="key" onclick="pressKey('0')">0</button>
+        <button class="key enter" onclick="submitPin()">Enter</button>
+      </div>
+ 
+      <a href="../index.html" class="back-link">← Back to Map</a>
+    </div>
+ 
+    <script>
+      const CORRECT_PIN = '1234'; // ← Change this to your desired PIN
+      const ADMIN_PAGE  = '../admin/index.html';
+ 
+      let pin = '';
+ 
+      function updateDisplay() {
+        const display = document.getElementById('pinDisplay');
+        const filled  = '●'.repeat(pin.length);
+        const empty   = '–'.repeat(4 - pin.length);
+        display.textContent = filled + empty;
+      }
+ 
+      function pressKey(digit) {
+        if (pin.length >= 4) return;
+        pin += digit;
+        updateDisplay();
+        if (pin.length === 4) setTimeout(submitPin, 200);
+      }
+ 
+      function clearPin() {
+        pin = pin.slice(0, -1);
+        updateDisplay();
+        clearError();
+      }
+ 
+      function submitPin() {
+        if (pin.length < 4) return;
+        if (pin === CORRECT_PIN) {
+          sessionStorage.setItem('adminAuth', 'true');
+          window.location.href = ADMIN_PAGE;
+        } else {
+          showError();
+        }
+      }
+ 
+      function showError() {
+        const display = document.getElementById('pinDisplay');
+        const msg     = document.getElementById('errorMsg');
+        display.classList.add('error');
+        msg.textContent = 'Incorrect PIN — try again';
+        setTimeout(() => {
+          display.classList.remove('error');
+          pin = '';
+          updateDisplay();
+        }, 600);
+        setTimeout(() => { msg.textContent = ''; }, 2000);
+      }
+ 
+      function clearError() {
+        document.getElementById('errorMsg').textContent = '';
+      }
+ 
+      document.addEventListener('keydown', e => {
+        if (e.key >= '0' && e.key <= '9') pressKey(e.key);
+        if (e.key === 'Backspace') clearPin();
+        if (e.key === 'Enter') submitPin();
+      });
+    </script>
+  </body>
+</html>

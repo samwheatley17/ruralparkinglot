@@ -88,6 +88,9 @@ scanBtn.addEventListener("click", async () => {
     // 2. Extract full base64 data string payload directly from full frozen canvas frame
     const rawFullImageDataUrl = canvas.toDataURL("image/png");
 
+    const text1 = await puter.ai.img2txt(rawFullImageDataUrl)
+    console.log(text1)
+
     // 3. Send image payload straight to Tesseract using basic global processor route
     const {
       data: { text },
