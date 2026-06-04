@@ -259,3 +259,69 @@
     .student-table th,
     .student-table td { padding: 8px; }
   }
+
+  @media (max-width: 600px) {
+  .whole-header {
+    flex-direction: row;
+    align-items: flex-start;
+    gap: 16px;
+    align-items: center;
+  }
+
+  .header-buttons {
+    width: 100%;
+    flex-direction: column;
+  }
+
+  .header-buttons .btn {
+    width: 100%;
+    text-align: center;
+  }
+
+  .stats-row {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .action-bar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .action-bar .buttons {
+    width: 100%;
+  }
+
+  .action-bar .btn {
+    width: 100%;
+  }
+
+    .header-buttons {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .header-buttons .btn {
+    width: 100%;
+    text-align: center;
+  }
+
+
+}
+
+
+
+
+.header-buttons {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 30px;
+}
+
+@media (max-width: 600px) {
+  .header-buttons .btn {
+    flex: 1;
+    text-align: center;
+  }
+}
+
+
