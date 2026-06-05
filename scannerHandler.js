@@ -8,10 +8,10 @@ const firebaseConfig = {
   appId: "1:585974079211:web:2ca0c2a2d2f2283afc28ae",
   measurementId: "G-ETF938ED3L",
 };
- 
+
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
- 
+
 const video = document.getElementById("cameraStream");
 const scanBtn = document.getElementById("scanBtn");
 const canvas = document.getElementById("captureCanvas");
@@ -22,21 +22,25 @@ const detectedPlateEl = document.getElementById("detectedPlate");
 const matchStatus = document.getElementById("matchStatus");
 const matchDetails = document.getElementById("matchDetails");
 const statusMsg = document.getElementById("statusMsg");
- 
+
 let currentStudents = [];
 let isFrozen = false;
- 
+
 db.ref("students").on("value", (snap) => {
   currentStudents = [];
   snap.forEach((child) => {
     currentStudents.push({ id: child.key, ...child.val() });
   });
 });
- 
+
 async function startCamera() {
   try {
     const stream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: "environment", width: { ideal: 1280 }, height: { ideal: 720 } },
+      video: {
+        facingMode: "environment",
+        width: { ideal: 1280 },
+        height: { ideal: 720 },
+      },
       audio: false,
     });
     video.srcObject = stream;
@@ -45,10 +49,10 @@ async function startCamera() {
     showStatus("Camera access denied. Ensure you are on HTTPS.", "error");
   }
 }
- 
+
 async function extractPlateWithPuter(imageDataUrl) {
   const base64 = imageDataUrl.split(",")[1];
- 
+
   const response = await puter.ai.chat([
     {
       role: "user",
@@ -63,12 +67,12 @@ async function extractPlateWithPuter(imageDataUrl) {
         },
         {
           type: "text",
-          text: "Read the license plate in this image. Reply with ONLY the plate characters, letters and numbers only, no spaces, no punctuation, nothing else.",
+          text: "Read the license plate in this image. Reply with ONLY the plate characters, letters and numbers only, no spaces, no punctuation, nothing else. If no license plate is visible, reply with XXXXXX.",
         },
       ],
     },
   ]);
- 
+
   const raw =
     typeof response === "string"
       ? response
@@ -76,23 +80,26 @@ async function extractPlateWithPuter(imageDataUrl) {
         response?.content?.[0]?.text ||
         response?.text ||
         "";
- 
-  return raw.toUpperCase().replace(/[^A-Z0-9]/g, "").trim();
+
+  return raw
+    .toUpperCase()
+    .replace(/[^A-Z0-9]/g, "")
+    .trim();
 }
- 
+
 scanBtn.addEventListener("click", async () => {
   if (isFrozen) {
     resetScanner();
     return;
   }
- 
+
   if (!video.srcObject || video.videoWidth === 0 || video.videoHeight === 0) {
     showStatus("Camera warming up. Try again in a moment.", "error");
     return;
   }
- 
+
   freezeFrame();
- 
+
   scanBtn.disabled = true;
   scanBtn.textContent = "Processing...";
   resultCard.classList.remove("hidden");
@@ -100,11 +107,11 @@ scanBtn.addEventListener("click", async () => {
   matchStatus.className = "match-badge checking";
   matchStatus.textContent = "Reading plate with AI...";
   matchDetails.innerHTML = "";
- 
+
   try {
     const imageDataUrl = canvas.toDataURL("image/png");
     const cleanedPlate = await extractPlateWithPuter(imageDataUrl);
- 
+
     if (!cleanedPlate) {
       detectedPlateEl.textContent = "???";
       showManualOverrideForm("");
@@ -125,7 +132,7 @@ scanBtn.addEventListener("click", async () => {
     isFrozen = true;
   }
 });
- 
+
 function freezeFrame() {
   canvas.width = video.videoWidth;
   canvas.height = video.videoHeight;
@@ -134,7 +141,7 @@ function freezeFrame() {
   canvas.classList.remove("hidden");
   if (scannerOverlay) scannerOverlay.classList.add("hidden");
 }
- 
+
 function resetScanner() {
   video.classList.remove("hidden");
   canvas.classList.add("hidden");
@@ -143,23 +150,29 @@ function resetScanner() {
   scanBtn.textContent = "Scan Plate";
   isFrozen = false;
 }
- 
+
 function lookupPlate(scannedText) {
   if (!scannedText) return;
- 
+
   const match = currentStudents.find((student) => {
     if (!student.vehicle || !student.vehicle.plate) return false;
-    const studentPlate = student.vehicle.plate.toUpperCase().replace(/[^A-Z0-9]/g, "");
-    return studentPlate.includes(scannedText) || scannedText.includes(studentPlate);
+    const studentPlate = student.vehicle.plate
+      .toUpperCase()
+      .replace(/[^A-Z0-9]/g, "");
+    return (
+      studentPlate.includes(scannedText) || scannedText.includes(studentPlate)
+    );
   });
- 
+
   if (match) {
     if (match.parkingSpot) {
       matchStatus.className = "match-badge matched";
       matchStatus.textContent = "Access Approved ✅";
       matchDetails.innerHTML = `
         <p><strong>Driver:</strong> ${match.studentName || "—"}</p>
-        <p><strong>Assigned Spot:</strong> <span class="spot-badge">${match.parkingSpot}</span></p>
+        <p><strong>Assigned Spot:</strong> <span class="spot-badge">${
+          match.parkingSpot
+        }</span></p>
         <p><strong>Registered Plate:</strong> ${match.vehicle.plate}</p>
         ${getManualOverrideLink(scannedText)}
       `;
@@ -182,7 +195,7 @@ function lookupPlate(scannedText) {
     `;
   }
 }
- 
+
 function getManualOverrideLink(failedTextStr) {
   return `
     <div style="margin-top:15px;border-top:1px dashed #ccc;padding-top:12px;text-align:center;">
@@ -192,7 +205,7 @@ function getManualOverrideLink(failedTextStr) {
     </div>
   `;
 }
- 
+
 function showManualOverrideForm(initialValue = "") {
   matchStatus.className = "match-badge checking";
   matchStatus.textContent = "Manual Input Mode";
@@ -208,19 +221,28 @@ function showManualOverrideForm(initialValue = "") {
     </div>
   `;
   document.getElementById("submitManualBtn").addEventListener("click", () => {
-    const val = document.getElementById("manualPlateField").value.toUpperCase().replace(/[^A-Z0-9]/g, "").trim();
-    if (!val) { showStatus("Please enter a valid plate.", "error"); return; }
+    const val = document
+      .getElementById("manualPlateField")
+      .value.toUpperCase()
+      .replace(/[^A-Z0-9]/g, "")
+      .trim();
+    if (!val) {
+      showStatus("Please enter a valid plate.", "error");
+      return;
+    }
     detectedPlateEl.textContent = val;
     lookupPlate(val);
   });
 }
- 
+
 window.activateManualInput = (prefill) => showManualOverrideForm(prefill);
- 
+
 function showStatus(msg, type) {
   statusMsg.textContent = msg;
   statusMsg.className = `status-msg ${type}`;
-  setTimeout(() => { statusMsg.className = "status-msg"; }, 5000);
+  setTimeout(() => {
+    statusMsg.className = "status-msg";
+  }, 5000);
 }
- 
+
 window.addEventListener("DOMContentLoaded", startCamera);
