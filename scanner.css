@@ -42,6 +42,13 @@
     color: #666666;
     font-size: 13px;
   }
+
+  .whole-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+  }
   
   /* Camera viewport Wrapper Container */
   .camera-card {
@@ -65,6 +72,17 @@
     width: 100%;
     height: auto;
     object-fit: cover;
+  }
+
+  .btn-secondary {
+    background-color: #ffffff;
+    color: #D32F2F;
+    border: 2px solid #D32F2F;
+  }
+
+  .btn-secondary:hover {
+    background-color: #1A1A1A;
+    border-color: #1A1A1A;
   }
   
   /* Bounding Target Alignment UI overlay framework */

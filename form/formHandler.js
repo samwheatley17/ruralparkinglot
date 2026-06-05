@@ -13,11 +13,9 @@ const firebaseConfig = {
 
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
-const ref = db.ref("students"); // data lives at /students in your DB
+const ref = db.ref("students"); 
 
-// 3. Write — push() auto-generates a unique key
 
-// 4. Read (real-time listener — updates instantly for everyone)
 ref.on("value", (snapshot) => {
   const list = document.getElementById("nameList");
   list.innerHTML = "";

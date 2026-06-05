@@ -12,20 +12,23 @@
       defer
       src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"
     ></script>
-    <script
-      defer
-      src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"
-    ></script>
+
+    <script src="https://js.puter.com/v2/"></script>
     <script defer src="scannerHandler.js"></script>
     <link rel="stylesheet" href="scanner.css" />
   </head>
   <body>
     <div class="admin-container scanner-container">
       <header class="admin-header">
-        <h1>Plate Enforcement Scanner</h1>
-        <p>
-          Scan a vehicle's license plate to verify active parking privileges.
-        </p>
+        <div class="whole-header">
+          <div>
+            <h1>Plate Enforcement Scanner</h1>
+            <p>Scan a vehicle's license plate to verify active parking privileges.</p>
+          </div>
+          <div class="header-buttons">
+            <button id="processBtn" class="btn btn-secondary" onclick="location.href='admin/index.html'">Back</button>
+          </div>
+        </div>
       </header>
 
       <div class="camera-card">

@@ -169,7 +169,10 @@ processBtn.addEventListener("click", async () => {
     await db.ref().update(updates);
 
     // 2. Fire off all emails in parallel
-    await Promise.all(emailPromises);
+    for (const promise of emailPromises) {
+  await promise;
+  await new Promise(res => setTimeout(res, 500)); // 500ms gap between emails
+}
 
     const waitlisted = Math.max(0, sorted.length - TOTAL_SPOTS);
     showStatus(

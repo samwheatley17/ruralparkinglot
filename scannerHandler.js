@@ -8,11 +8,10 @@ const firebaseConfig = {
   appId: "1:585974079211:web:2ca0c2a2d2f2283afc28ae",
   measurementId: "G-ETF938ED3L",
 };
-
+ 
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
-
-// DOM Elements
+ 
 const video = document.getElementById("cameraStream");
 const scanBtn = document.getElementById("scanBtn");
 const canvas = document.getElementById("captureCanvas");
@@ -23,80 +22,89 @@ const detectedPlateEl = document.getElementById("detectedPlate");
 const matchStatus = document.getElementById("matchStatus");
 const matchDetails = document.getElementById("matchDetails");
 const statusMsg = document.getElementById("statusMsg");
-
+ 
 let currentStudents = [];
 let isFrozen = false;
-
-// Fetch snapshot of active records from Firebase Realtime Database
+ 
 db.ref("students").on("value", (snap) => {
   currentStudents = [];
   snap.forEach((child) => {
     currentStudents.push({ id: child.key, ...child.val() });
   });
 });
-
-// Stream standard environment rear-facing camera configuration
+ 
 async function startCamera() {
   try {
-    const constraints = {
-      video: {
-        facingMode: "environment",
-        width: { ideal: 1280 },
-        height: { ideal: 720 },
-      },
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: "environment", width: { ideal: 1280 }, height: { ideal: 720 } },
       audio: false,
-    };
-    const stream = await navigator.mediaDevices.getUserMedia(constraints);
+    });
     video.srcObject = stream;
     showStatus("Camera connection ready.", "success");
   } catch (err) {
-    console.error("Camera access error:", err);
-    showStatus(
-      "Camera access denied. Ensure you are utilizing an HTTPS portal.",
-      "error"
-    );
+    showStatus("Camera access denied. Ensure you are on HTTPS.", "error");
   }
 }
-
-// Main Scan Execution Flow Control
+ 
+async function extractPlateWithPuter(imageDataUrl) {
+  const base64 = imageDataUrl.split(",")[1];
+ 
+  const response = await puter.ai.chat([
+    {
+      role: "user",
+      content: [
+        {
+          type: "image",
+          source: {
+            type: "base64",
+            media_type: "image/png",
+            data: base64,
+          },
+        },
+        {
+          type: "text",
+          text: "Read the license plate in this image. Reply with ONLY the plate characters, letters and numbers only, no spaces, no punctuation, nothing else.",
+        },
+      ],
+    },
+  ]);
+ 
+  const raw =
+    typeof response === "string"
+      ? response
+      : response?.message?.content?.[0]?.text ||
+        response?.content?.[0]?.text ||
+        response?.text ||
+        "";
+ 
+  return raw.toUpperCase().replace(/[^A-Z0-9]/g, "").trim();
+}
+ 
 scanBtn.addEventListener("click", async () => {
   if (isFrozen) {
     resetScanner();
     return;
   }
-
+ 
   if (!video.srcObject || video.videoWidth === 0 || video.videoHeight === 0) {
-    showStatus(
-      "Camera engine layout warming up. Try again in a brief second.",
-      "error"
-    );
+    showStatus("Camera warming up. Try again in a moment.", "error");
     return;
   }
-
-  // 1. Instantly freeze snapshot image data context frame
+ 
   freezeFrame();
-
+ 
   scanBtn.disabled = true;
-  scanBtn.textContent = "Processing OCR...";
+  scanBtn.textContent = "Processing...";
   resultCard.classList.remove("hidden");
-  detectedPlateEl.textContent = "Analyzing full frame...";
+  detectedPlateEl.textContent = "Analyzing frame...";
   matchStatus.className = "match-badge checking";
-  matchStatus.textContent = "Processing Character OCR...";
+  matchStatus.textContent = "Reading plate with AI...";
   matchDetails.innerHTML = "";
-
+ 
   try {
-    // 2. Extract full base64 data string payload directly from full frozen canvas frame
-    const rawFullImageDataUrl = canvas.toDataURL("image/png");
-
-    // 3. Send image payload straight to Tesseract using basic global processor route
-    const {
-      data: { text },
-    } = await Tesseract.recognize(rawFullImageDataUrl, "eng");
-    const cleanedPlate = text
-      .toUpperCase()
-      .replace(/[^A-Z0-9]/g, "")
-      .trim();
-
+    const imageDataUrl = canvas.toDataURL("image/png");
+    const cleanedPlate = await extractPlateWithPuter(imageDataUrl);
+ 
     if (!cleanedPlate) {
       detectedPlateEl.textContent = "???";
       showManualOverrideForm("");
@@ -106,7 +114,10 @@ scanBtn.addEventListener("click", async () => {
     }
   } catch (err) {
     console.error("Scanning Execution Fault Intercepted:", err);
+    console.error("Error message:", err?.message);
+    console.error("Error details:", JSON.stringify(err, null, 2));
     detectedPlateEl.textContent = "Error";
+    showStatus("AI vision error. Use manual entry below.", "error");
     showManualOverrideForm("");
   } finally {
     scanBtn.disabled = false;
@@ -114,20 +125,16 @@ scanBtn.addEventListener("click", async () => {
     isFrozen = true;
   }
 });
-
+ 
 function freezeFrame() {
   canvas.width = video.videoWidth;
   canvas.height = video.videoHeight;
-  const ctx = canvas.getContext("2d");
-
-  // Stash direct image pixels from original streaming resolution matrix
-  ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-
+  canvas.getContext("2d").drawImage(video, 0, 0, canvas.width, canvas.height);
   video.classList.add("hidden");
   canvas.classList.remove("hidden");
   if (scannerOverlay) scannerOverlay.classList.add("hidden");
 }
-
+ 
 function resetScanner() {
   video.classList.remove("hidden");
   canvas.classList.add("hidden");
@@ -136,104 +143,84 @@ function resetScanner() {
   scanBtn.textContent = "Scan Plate";
   isFrozen = false;
 }
-
-// Cross-reference strings and layout results dynamically
+ 
 function lookupPlate(scannedText) {
   if (!scannedText) return;
-
+ 
   const match = currentStudents.find((student) => {
     if (!student.vehicle || !student.vehicle.plate) return false;
-    const studentPlate = student.vehicle.plate
-      .toUpperCase()
-      .replace(/[^A-Z0-9]/g, "");
-    return (
-      studentPlate.includes(scannedText) || scannedText.includes(studentPlate)
-    );
+    const studentPlate = student.vehicle.plate.toUpperCase().replace(/[^A-Z0-9]/g, "");
+    return studentPlate.includes(scannedText) || scannedText.includes(studentPlate);
   });
-
+ 
   if (match) {
     if (match.parkingSpot) {
       matchStatus.className = "match-badge matched";
       matchStatus.textContent = "Access Approved ✅";
       matchDetails.innerHTML = `
-          <p><strong>Driver:</strong> ${match.studentName || "—"}</p>
-          <p><strong>Assigned Spot:</strong> <span class="spot-badge">${
-            match.parkingSpot
-          }</span></p>
-          <p><strong>Registered Plate:</strong> ${match.vehicle.plate}</p>
-          ${getManualOverrideLink(scannedText)}
-        `;
+        <p><strong>Driver:</strong> ${match.studentName || "—"}</p>
+        <p><strong>Assigned Spot:</strong> <span class="spot-badge">${match.parkingSpot}</span></p>
+        <p><strong>Registered Plate:</strong> ${match.vehicle.plate}</p>
+        ${getManualOverrideLink(scannedText)}
+      `;
     } else {
       matchStatus.className = "match-badge waitlisted";
       matchStatus.textContent = "Unassigned / Waitlisted ⚠️";
       matchDetails.innerHTML = `
-          <p><strong>Driver:</strong> ${match.studentName || "—"}</p>
-          <p><strong>Status:</strong> Applicant is not currently assigned an active spot.</p>
-          <p><strong>Registered Plate:</strong> ${match.vehicle.plate}</p>
-          ${getManualOverrideLink(scannedText)}
-        `;
+        <p><strong>Driver:</strong> ${match.studentName || "—"}</p>
+        <p><strong>Status:</strong> Applicant is not currently assigned an active spot.</p>
+        <p><strong>Registered Plate:</strong> ${match.vehicle.plate}</p>
+        ${getManualOverrideLink(scannedText)}
+      `;
     }
   } else {
     matchStatus.className = "match-badge missing";
     matchStatus.textContent = "Not On List ❌";
     matchDetails.innerHTML = `
-        <p>No active applicant records matching this vehicle plate were located.</p>
-        ${getManualOverrideLink(scannedText)}
-      `;
+      <p>No active applicant records matching this plate were found.</p>
+      ${getManualOverrideLink(scannedText)}
+    `;
   }
 }
-
-// Generate a clean HTML switch to activate input overlay if text was misread
+ 
 function getManualOverrideLink(failedTextStr) {
   return `
-      <div style="margin-top: 15px; border-top: 1px dashed #ccc; padding-top: 12px; text-align: center;">
-        <button type="button" class="fallback-input-btn" onclick="window.activateManualInput('${failedTextStr}')" style="background: none; border: none; color: #0066cc; text-decoration: underline; font-size: 0.9rem; cursor: pointer;">
-          Incorrect match? Type plate manually
-        </button>
-      </div>
-    `;
+    <div style="margin-top:15px;border-top:1px dashed #ccc;padding-top:12px;text-align:center;">
+      <button type="button" onclick="window.activateManualInput('${failedTextStr}')" style="background:none;border:none;color:#0066cc;text-decoration:underline;font-size:0.9rem;cursor:pointer;">
+        Incorrect match? Type plate manually
+      </button>
+    </div>
+  `;
 }
-
-// Form element architecture layout renderer injection loop
+ 
 function showManualOverrideForm(initialValue = "") {
   matchStatus.className = "match-badge checking";
   matchStatus.textContent = "Manual Input Mode";
-
   matchDetails.innerHTML = `
-      <div class="manual-input-container" style="padding: 5px 0;">
-        <p style="margin: 0 0 8px 0; font-size: 0.9rem; color: #555;">Enter the license plate character sequence directly:</p>
-        <input type="text" id="manualPlateField" value="${initialValue}" placeholder="E.g. ABC123" style="width: 100%; box-sizing: border-box; padding: 10px; font-size: 1.1rem; text-transform: uppercase; border: 2px solid #333; border-radius: 4px; font-family: monospace; letter-spacing: 1px; margin-bottom: 10px;" />
-        <button id="submitManualBtn" style="width: 100%; padding: 10px; background-color: #222; color: #fff; font-weight: bold; border: none; border-radius: 4px; cursor: pointer; font-size: 1rem;">Verify License Plate</button>
-      </div>
-    `;
-
-  // Attach button event listener
+    <div style="padding:5px 0;">
+      <p style="margin:0 0 8px 0;font-size:0.9rem;color:#555;">Enter the license plate directly:</p>
+      <input type="text" id="manualPlateField" value="${initialValue}" placeholder="E.g. ABC123"
+        style="width:100%;box-sizing:border-box;padding:10px;font-size:1.1rem;text-transform:uppercase;border:2px solid #333;border-radius:4px;font-family:monospace;letter-spacing:1px;margin-bottom:10px;" />
+      <button id="submitManualBtn"
+        style="width:100%;padding:10px;background-color:#222;color:#fff;font-weight:bold;border:none;border-radius:4px;cursor:pointer;font-size:1rem;">
+        Verify License Plate
+      </button>
+    </div>
+  `;
   document.getElementById("submitManualBtn").addEventListener("click", () => {
-    const fieldVal = document
-      .getElementById("manualPlateField")
-      .value.toUpperCase()
-      .replace(/[^A-Z0-9]/g, "")
-      .trim();
-    if (!fieldVal) {
-      showStatus("Please input a valid sequence to check records.", "error");
-      return;
-    }
-    detectedPlateEl.textContent = fieldVal;
-    lookupPlate(fieldVal);
+    const val = document.getElementById("manualPlateField").value.toUpperCase().replace(/[^A-Z0-9]/g, "").trim();
+    if (!val) { showStatus("Please enter a valid plate.", "error"); return; }
+    detectedPlateEl.textContent = val;
+    lookupPlate(val);
   });
 }
-
-// Expose fallback window scope execution controller link handler explicitly
-window.activateManualInput = function (prefill) {
-  showManualOverrideForm(prefill);
-};
-
+ 
+window.activateManualInput = (prefill) => showManualOverrideForm(prefill);
+ 
 function showStatus(msg, type) {
   statusMsg.textContent = msg;
   statusMsg.className = `status-msg ${type}`;
-  setTimeout(() => {
-    statusMsg.className = "status-msg";
-  }, 5000);
+  setTimeout(() => { statusMsg.className = "status-msg"; }, 5000);
 }
-
+ 
 window.addEventListener("DOMContentLoaded", startCamera);

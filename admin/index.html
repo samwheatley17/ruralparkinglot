@@ -22,9 +22,16 @@
   <body>
     <div class="admin-container">
       <header class="admin-header">
-        <h1>Parking Admin Dashboard</h1>
-        <p>Review applicants and assign parking spots by priority.</p>
+        <div>
+          <h1>Parking Admin Dashboard</h1>
+          <p>Review applicants and assign parking spots by priority.</p>
+        </div>
       </header>
+
+      <div class="header-buttons">
+        <button id="home" class="btn btn-secondary" onclick="location.href='../index.html'">Home</button>
+        <button id="scanner" class="btn btn-secondary" onclick="location.href='../scanner.html'">Scanner</button>
+      </div>
 
       <!-- Stats -->
       <div class="stats-row">
@@ -49,9 +56,12 @@
       <!-- Action Bar -->
       <div class="action-bar">
         <h2>Applicants (sorted by priority)</h2>
+        <div class="buttons">
         <button id="processBtn" class="btn btn-primary">
           Process &amp; Assign
         </button>
+        
+      </div>
       </div>
 
       <!-- Student Table -->
